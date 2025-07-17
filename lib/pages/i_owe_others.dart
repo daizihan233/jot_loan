@@ -12,7 +12,7 @@ class IOweOthersPage extends StatefulWidget {
 
 class _IOweOthersPageState extends State<IOweOthersPage> {
   List<Transfer> transfers = [];
-  Map<String, Decimal> lenderTotals = {};
+  Map<String, Decimal> borrowerTotals = {};
   bool isLoading = true;
 
   @override
@@ -27,16 +27,16 @@ class _IOweOthersPageState extends State<IOweOthersPage> {
     try {
       final transfersList = await getTransfers();
 
-      // 过滤出我欠别人的记录（我是借款人）
+      // 过滤出别人欠我的记录（我是出借人）
       final filteredTransfers = transfersList.where((t) =>
-      t.borrower == "我" && t.lender != "我" && t.money < t.amount
+      t.lender == "我" && t.borrower != "我" && t.money < t.amount
       ).toList();
 
-      // 按出借人分组并计算总欠款
+      // 按借款人分组并计算总欠款
       final totals = <String, Decimal>{};
       for (var transfer in filteredTransfers) {
         totals.update(
-            transfer.lender,
+            transfer.borrower,
                 (value) => value + (transfer.amount - transfer.money),
             ifAbsent: () => transfer.amount - transfer.money
         );
@@ -44,7 +44,7 @@ class _IOweOthersPageState extends State<IOweOthersPage> {
 
       setState(() {
         transfers = filteredTransfers;
-        lenderTotals = totals;
+        borrowerTotals = totals;
         isLoading = false;
       });
     } catch (e) {
@@ -71,7 +71,7 @@ class _IOweOthersPageState extends State<IOweOthersPage> {
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
-          : lenderTotals.isEmpty
+          : borrowerTotals.isEmpty
           ? const Center(child: Text('没有欠款记录'))
           : Column(
         children: [
@@ -96,7 +96,7 @@ class _IOweOthersPageState extends State<IOweOthersPage> {
                     children: [
                       const Text('总欠款人数:'),
                       Text(
-                        lenderTotals.length.toString(),
+                        borrowerTotals.length.toString(),
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ],
@@ -107,7 +107,7 @@ class _IOweOthersPageState extends State<IOweOthersPage> {
                     children: [
                       const Text('总欠款金额:'),
                       Text(
-                        lenderTotals.values
+                        borrowerTotals.values
                             .fold(Decimal.zero, (sum, value) => sum + value)
                             .toString(),
                         style: const TextStyle(
@@ -122,32 +122,32 @@ class _IOweOthersPageState extends State<IOweOthersPage> {
             ),
           ),
 
-          // 出借人列表
+          // 借款人列表
           Expanded(
             child: ListView.builder(
-              itemCount: lenderTotals.length,
+              itemCount: borrowerTotals.length,
               itemBuilder: (context, index) {
-                final lender = lenderTotals.keys.elementAt(index);
-                final totalAmount = lenderTotals[lender]!;
+                final borrower = borrowerTotals.keys.elementAt(index);
+                final totalAmount = borrowerTotals[borrower]!;
 
                 return Card(
                   margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: ListTile(
                     leading: const CircleAvatar(
-                      backgroundColor: Colors.orange,
+                      backgroundColor: Colors.blue,
                       child: Icon(Icons.person, color: Colors.white),
                     ),
-                    title: Text(lender),
+                    title: Text(borrower),
                     subtitle: Text('欠款总额: $totalAmount 元'),
                     trailing: const Icon(Icons.arrow_forward),
                     onTap: () {
-                      // 跳转到该出借人的详细记录页面
+                      // 跳转到该借款人的详细记录页面
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => LenderDetailPage(
-                            lender: lender,
-                            transfers: transfers.where((t) => t.lender == lender).toList(),
+                          builder: (context) => BorrowerDetailPage(
+                            borrower: borrower,
+                            transfers: transfers.where((t) => t.borrower == borrower).toList(),
                           ),
                         ),
                       );
@@ -163,14 +163,14 @@ class _IOweOthersPageState extends State<IOweOthersPage> {
   }
 }
 
-// 出借人详情页面
-class LenderDetailPage extends StatelessWidget {
-  final String lender;
+// 借款人详情页面
+class BorrowerDetailPage extends StatelessWidget {
+  final String borrower;
   final List<Transfer> transfers;
 
-  const LenderDetailPage({
+  const BorrowerDetailPage({
     super.key,
-    required this.lender,
+    required this.borrower,
     required this.transfers,
   });
 
@@ -190,7 +190,7 @@ class LenderDetailPage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('欠 $lender 的详情'),
+        title: Text('我欠 $borrower'),
       ),
       body: Column(
         children: [
@@ -206,14 +206,14 @@ class LenderDetailPage extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        lender,
+                        borrower,
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       const CircleAvatar(
-                        backgroundColor: Colors.orange,
+                        backgroundColor: Colors.blue,
                         child: Icon(Icons.person, color: Colors.white),
                       ),
                     ],

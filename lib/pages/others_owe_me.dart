@@ -7,12 +7,12 @@ class OthersOweMePage extends StatefulWidget {
   const OthersOweMePage({super.key});
 
   @override
-  State<OthersOweMePage> createState() => _OthersOweMePageState();
+  State<OthersOweMePage> createState() => _IOweOthersPageState();
 }
 
-class _OthersOweMePageState extends State<OthersOweMePage> {
+class _IOweOthersPageState extends State<OthersOweMePage> {
   List<Transfer> transfers = [];
-  Map<String, Decimal> borrowerTotals = {};
+  Map<String, Decimal> lenderTotals = {};
   bool isLoading = true;
 
   @override
@@ -27,16 +27,16 @@ class _OthersOweMePageState extends State<OthersOweMePage> {
     try {
       final transfersList = await getTransfers();
 
-      // 过滤出别人欠我的记录（我是出借人）
+      // 过滤出我欠别人的记录（我是借款人）
       final filteredTransfers = transfersList.where((t) =>
-      t.lender == "我" && t.borrower != "我" && t.money < t.amount
+      t.borrower == "我" && t.lender != "我" && t.money < t.amount
       ).toList();
 
-      // 按借款人分组并计算总欠款
+      // 按出借人分组并计算总欠款
       final totals = <String, Decimal>{};
       for (var transfer in filteredTransfers) {
         totals.update(
-            transfer.borrower,
+            transfer.lender,
                 (value) => value + (transfer.amount - transfer.money),
             ifAbsent: () => transfer.amount - transfer.money
         );
@@ -44,7 +44,7 @@ class _OthersOweMePageState extends State<OthersOweMePage> {
 
       setState(() {
         transfers = filteredTransfers;
-        borrowerTotals = totals;
+        lenderTotals = totals;
         isLoading = false;
       });
     } catch (e) {
@@ -71,7 +71,7 @@ class _OthersOweMePageState extends State<OthersOweMePage> {
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
-          : borrowerTotals.isEmpty
+          : lenderTotals.isEmpty
           ? const Center(child: Text('没有欠款记录'))
           : Column(
         children: [
@@ -96,7 +96,7 @@ class _OthersOweMePageState extends State<OthersOweMePage> {
                     children: [
                       const Text('总欠款人数:'),
                       Text(
-                        borrowerTotals.length.toString(),
+                        lenderTotals.length.toString(),
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ],
@@ -107,7 +107,7 @@ class _OthersOweMePageState extends State<OthersOweMePage> {
                     children: [
                       const Text('总欠款金额:'),
                       Text(
-                        borrowerTotals.values
+                        lenderTotals.values
                             .fold(Decimal.zero, (sum, value) => sum + value)
                             .toString(),
                         style: const TextStyle(
@@ -122,32 +122,32 @@ class _OthersOweMePageState extends State<OthersOweMePage> {
             ),
           ),
 
-          // 借款人列表
+          // 出借人列表
           Expanded(
             child: ListView.builder(
-              itemCount: borrowerTotals.length,
+              itemCount: lenderTotals.length,
               itemBuilder: (context, index) {
-                final borrower = borrowerTotals.keys.elementAt(index);
-                final totalAmount = borrowerTotals[borrower]!;
+                final lender = lenderTotals.keys.elementAt(index);
+                final totalAmount = lenderTotals[lender]!;
 
                 return Card(
                   margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: ListTile(
                     leading: const CircleAvatar(
-                      backgroundColor: Colors.blue,
+                      backgroundColor: Colors.orange,
                       child: Icon(Icons.person, color: Colors.white),
                     ),
-                    title: Text(borrower),
+                    title: Text(lender),
                     subtitle: Text('欠款总额: $totalAmount 元'),
                     trailing: const Icon(Icons.arrow_forward),
                     onTap: () {
-                      // 跳转到该借款人的详细记录页面
+                      // 跳转到该出借人的详细记录页面
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => BorrowerDetailPage(
-                            borrower: borrower,
-                            transfers: transfers.where((t) => t.borrower == borrower).toList(),
+                          builder: (context) => LenderDetailPage(
+                            lender: lender,
+                            transfers: transfers.where((t) => t.lender == lender).toList(),
                           ),
                         ),
                       );
@@ -163,14 +163,14 @@ class _OthersOweMePageState extends State<OthersOweMePage> {
   }
 }
 
-// 借款人详情页面
-class BorrowerDetailPage extends StatelessWidget {
-  final String borrower;
+// 出借人详情页面
+class LenderDetailPage extends StatelessWidget {
+  final String lender;
   final List<Transfer> transfers;
 
-  const BorrowerDetailPage({
+  const LenderDetailPage({
     super.key,
-    required this.borrower,
+    required this.lender,
     required this.transfers,
   });
 
@@ -190,7 +190,7 @@ class BorrowerDetailPage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('$borrower 的欠款详情'),
+        title: Text('$lender 欠我'),
       ),
       body: Column(
         children: [
@@ -206,14 +206,14 @@ class BorrowerDetailPage extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        borrower,
+                        lender,
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       const CircleAvatar(
-                        backgroundColor: Colors.blue,
+                        backgroundColor: Colors.orange,
                         child: Icon(Icons.person, color: Colors.white),
                       ),
                     ],

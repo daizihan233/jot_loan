@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:jot_loan/pages/add.dart';
-import 'package:jot_loan/pages/i_owe_others.dart';
 import 'package:jot_loan/pages/others_owe_me.dart';
+import 'package:jot_loan/pages/i_owe_others.dart';
 import 'package:jot_loan/utils/sql.dart';
 import 'package:sidebarx/sidebarx.dart';
 import 'package:jot_loan/utils/models.dart';
@@ -85,7 +85,7 @@ class _MyHomePageState extends State<MyHomePage> {
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: Text(widget.title),
         actions: [
-          IconButton(
+          if (_currentIndex == 0) IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadTransfers
           ),
