@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:jot_loan/pages/add.dart';
-import 'package:jot_loan/utils/date.dart';
 import 'package:jot_loan/utils/sql.dart';
 import 'package:sidebarx/sidebarx.dart';
-import 'package:jot_loan/utils/models.dart'; // 确保导入模型
+import 'package:jot_loan/utils/models.dart';
+
+import 'components/transfer_card.dart';
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized(); // 确保绑定初始化
-  await initDatabase(); // 等待数据库初始化完成
+  WidgetsFlutterBinding.ensureInitialized();
+  await initDatabase();
   runApp(const MyApp());
 }
 
@@ -36,47 +37,41 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  // 状态变量
   String transferData = "加载中...";
-  List<Transfer> transfers = []; // 存储获取的转账数据
+  List<Transfer> transfers = [];
+  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    // 在 initState 中调用数据加载
     _loadTransfers();
   }
 
-  // 异步加载数据的方法
   Future<void> _loadTransfers() async {
-    try {
-      // 获取数据
-      final transfersList = await getTransfers();
+    setState(() => isLoading = true);
 
-      // 更新状态并刷新UI
+    try {
+      final transfersList = await getTransfers();
       setState(() {
-        transfers = transfersList;
-        transferData = transfersList.isNotEmpty
-            ? transfersList.toString()
-            : "没有转账记录";
+        transfers = transfersList.reversed.toList();
+        transferData = transfersList.isEmpty ? "没有转账记录" : "";
+        isLoading = false;
       });
     } catch (e) {
-      // 处理错误
       setState(() {
         transferData = "加载失败: $e";
+        isLoading = false;
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    _loadTransfers();
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: Text(widget.title),
         actions: [
-          // 添加刷新按钮
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadTransfers,
@@ -92,48 +87,41 @@ class _MyHomePageState extends State<MyHomePage> {
           SidebarXItem(icon: Icons.search, label: '我欠别人'),
         ],
       ),
-      body: Center(
-        child: transfers.isEmpty
-            ? Text(transferData) // 显示加载状态或错误信息
-            : ListView.builder( // 显示转账列表
-          itemCount: transfers.length,
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : transfers.isEmpty
+          ? Center(child: Text(transferData))
+          : RefreshIndicator(
+        onRefresh: _loadTransfers,
+        child: ListView.builder(
+          itemCount: transfers.length + 1, // 增加一项用于底部空白
           itemBuilder: (context, index) {
-            final transfer = transfers[index];
-            String startDate = convertToString(transfer.start);
-            String stopDate = convertToString(transfer.stop);
-            String displayDate = "自 $startDate 至 $stopDate";
-            if (stopDate == "") {
-              String displayDate = "自 $startDate 以来";
-            }
-            return Card(
-              elevation: 3, // 阴影深度
-              margin: EdgeInsets.all(8),
-              child: ListTile(
-                title: Text("${transfer.borrower} → ${transfer.lender}"),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text("已还 / 总额: ${transfer.money} / ${transfer.amount}"),
-                    Text("未还: ${transfer.amount - transfer.money}"),
-                    Text(displayDate),
-                    if (transfer.reason.isNotEmpty) Text("事由: ${transfer.reason}"),
-                  ],
+            if (index < transfers.length) {
+              return TransferCard(
+                transfer: transfers[index],
+                onUpdate: _loadTransfers,
+              );
+            } else {
+              // 添加一个透明的空容器作为底部空白
+              return SizedBox(
+                height: 100,
+                child: Container(
+                  // 可选：添加一些装饰让用户知道这是列表的底部
+                  color: Colors.transparent,
+                  // 如果希望更明显的视觉指示，可以添加:
+                  child: Center(child: Icon(Icons.close, color: Colors.grey))
                 ),
-                trailing: transfer.money < transfer.amount
-                    ? Icon(Icons.pending, color: Colors.orange)
-                    : Icon(Icons.check_circle, color: Colors.green),
-              ),
-            );
+              );
+            }
           },
         ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          // 添加新记录后刷新数据
           await Navigator.of(context).push(
               MaterialPageRoute(builder: (context) => MyAddPage())
           );
-          _loadTransfers(); // 返回后刷新数据
+          _loadTransfers();
         },
         tooltip: '添加',
         child: const Icon(Icons.add),
@@ -141,3 +129,4 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 }
+

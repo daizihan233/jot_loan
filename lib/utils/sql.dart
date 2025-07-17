@@ -60,6 +60,29 @@ Future<void> insertTransfer(Transfer transfer) async {
   );
 }
 
+
+// 现在在 sql.dart 文件中添加更新和删除方法
+Future<void> updateTransfer(Transfer transfer) async {
+  final db = await transferDb;
+  await db.update(
+    'transfers',
+    transfer.toMap(),
+    where: 'id = ?',
+    whereArgs: [transfer.id],
+    conflictAlgorithm: ConflictAlgorithm.replace,
+  );
+}
+
+Future<void> deleteTransfer(int id) async {
+  final db = await transferDb;
+  await db.delete(
+    'transfers',
+    where: 'id = ?',
+    whereArgs: [id],
+  );
+}
+
+// 修改 getTransfers 方法处理 Decimal 类型的空值情况
 Future<List<Transfer>> getTransfers() async {
   final db = await transferDb;
   final List<Map<String, Object?>> transfers = await db.query('transfers');
@@ -69,11 +92,18 @@ Future<List<Transfer>> getTransfers() async {
         'id': id as int, 'borrower': borrower as String,
         'lender': lender as String, 'amount': amount as String,
         'money': money as String, 'start': start as int,
-        'stop': stop as int?, 'reason': reason as String
+        'stop': stop as int?, 'reason': reason as String?
       } in transfers
     )
-      Transfer(id: id, borrower: borrower, lender: lender,
-          amount: Decimal.parse(amount), money: Decimal.parse(money),
-          start: start, stop: stop, reason: reason)
+      Transfer(
+        id: id,
+        borrower: borrower,
+        lender: lender,
+        amount: amount.isNotEmpty ? Decimal.parse(amount) : Decimal.zero,
+        money: money.isNotEmpty ? Decimal.parse(money) : Decimal.zero,
+        start: start,
+        stop: stop,
+        reason: reason ?? '',
+      )
   ];
 }

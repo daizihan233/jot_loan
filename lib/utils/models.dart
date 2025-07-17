@@ -29,4 +29,26 @@ class Transfer {
         'amount: $amount, money: $money, start: $start, stop: $stop, '
         'reason: $reason}';
   }
+
+  Transfer copyWith({
+    int? id,
+    String? borrower,
+    String? lender,
+    Decimal? amount,
+    Decimal? money,
+    int? start,
+    int? stop,
+    String? reason,
+  }) {
+    return Transfer(
+      id: id ?? this.id,
+      borrower: borrower ?? this.borrower,
+      lender: lender ?? this.lender,
+      amount: amount ?? this.amount,
+      money: money ?? this.money,
+      start: start ?? this.start,
+      stop: stop ?? this.stop,
+      reason: reason ?? this.reason,
+    );
+  }
 }
