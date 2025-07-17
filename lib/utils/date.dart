@@ -28,6 +28,7 @@ int? convertToTimestampSafe(String? dateStr) {
 
 String convertToString(int? timestamp) {
   if (timestamp == null) return "";
-  DateTime localDate = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
-  return "${localDate.year}-${localDate.month}-${localDate.day}";
+  return DateFormat('yyyy-MM-dd').format(
+      DateTime.fromMillisecondsSinceEpoch(timestamp * 1000)
+  );
 }

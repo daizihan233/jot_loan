@@ -3,6 +3,7 @@ import 'package:jot_loan/utils/date.dart';
 import 'package:jot_loan/utils/models.dart';
 import 'package:decimal/decimal.dart';
 
+import '../pages/edit.dart';
 import '../utils/sql.dart';
 
 class TransferCard extends StatefulWidget {
@@ -289,19 +290,13 @@ class _TransferCardState extends State<TransferCard> {
     );
   }
 
-  void _editTransfer(BuildContext context) {
-    // 实现修改转账信息的逻辑
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('修改转账信息'),
-        content: const Text('修改功能正在开发中...'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('确定'),
-          ),
-        ],
+  Future<void> _editTransfer(BuildContext context) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => EditTransferPage(
+          transfer: widget.transfer,
+          onUpdate: widget.onUpdate,
+        ),
       ),
     );
   }

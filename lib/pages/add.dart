@@ -1,23 +1,9 @@
 import 'package:decimal/decimal.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:jot_loan/utils/date.dart';
 import 'package:jot_loan/utils/models.dart';
 import 'package:jot_loan/utils/sql.dart';
-
-Future<void> importData (
-    String borrower, String lender, Decimal amount, int start, int? stop,
-    String reason
-) async {
-  Transfer transfer = Transfer(
-      borrower: borrower, lender: lender, amount: amount, money: Decimal.zero,
-      start: start, stop: stop, reason: reason
-  );
-  if (kDebugMode) {
-    print(transfer.toString());
-  }
-  await insertTransfer(transfer);
-}
+import 'package:intl/intl.dart';
 
 class MyAddPage extends StatefulWidget {
   const MyAddPage({super.key});
@@ -27,6 +13,7 @@ class MyAddPage extends StatefulWidget {
 }
 
 class _MyAddPageState extends State<MyAddPage> {
+  final _formKey = GlobalKey<FormState>();
   final borrowerController = TextEditingController();
   final lenderController = TextEditingController();
   final amountController = TextEditingController();
@@ -36,7 +23,6 @@ class _MyAddPageState extends State<MyAddPage> {
 
   @override
   void dispose() {
-    // Clean up the controller when the widget is disposed.
     borrowerController.dispose();
     lenderController.dispose();
     amountController.dispose();
@@ -46,103 +32,200 @@ class _MyAddPageState extends State<MyAddPage> {
     super.dispose();
   }
 
+  Future<void> _importData() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    try {
+      final borrower = borrowerController.text;
+      final lender = lenderController.text;
+      final amount = Decimal.parse(amountController.text);
+      final start = convertToTimestamp(startController.text);
+      final stop = stopController.text.isNotEmpty
+          ? convertToTimestamp(stopController.text)
+          : null;
+      final reason = reasonController.text;
+
+      final transfer = Transfer(
+        borrower: borrower,
+        lender: lender,
+        amount: amount,
+        money: Decimal.zero,
+        start: start,
+        stop: stop,
+        reason: reason,
+      );
+
+      await insertTransfer(transfer);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('添加成功')),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('添加失败: $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text('添加数据'),
+        title: const Text('添加借款记录'),
         leading: IconButton(
-          icon: Icon(Icons.arrow_back), onPressed: (){
-            Navigator.pop(context);
-          }
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
-            child: TextFormField(
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: <Widget>[
+            // 借款人
+            TextFormField(
               controller: borrowerController,
               decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: '谁借？',
-                hintText: '借别人钱请填写“我”'
+                labelText: '借款人',
+                hintText: '谁借的钱？',
+                prefixIcon: Icon(Icons.person),
               ),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return '请输入借款人';
+                }
+                return null;
+              },
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
-            child: TextFormField(
+            const SizedBox(height: 16),
+
+            // 出借人
+            TextFormField(
               controller: lenderController,
               decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: '借谁？',
-                hintText: '别人借钱请填写“我”'
+                labelText: '出借人',
+                hintText: '钱借给了谁？',
+                prefixIcon: Icon(Icons.person_outline),
               ),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return '请输入出借人';
+                }
+                if (value == borrowerController.text) {
+                  return '借款人和出借人不能相同';
+                }
+                return null;
+              },
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
-            child: TextFormField(
+            const SizedBox(height: 16),
+
+            // 借款金额
+            TextFormField(
               controller: amountController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
               decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: '借多少？',
-                hintText: '借款数额，支持小数'
+                labelText: '借款金额',
+                hintText: '请输入借款金额',
+                prefixIcon: Icon(Icons.attach_money),
               ),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return '请输入借款金额';
+                }
+                final amount = Decimal.tryParse(value);
+                if (amount == null || amount <= Decimal.zero) {
+                  return '请输入有效的金额';
+                }
+                return null;
+              },
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
-            child: TextFormField(
+            const SizedBox(height: 16),
+
+            // 借款日期
+            TextFormField(
               controller: startController,
+              readOnly: true,
               decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: '什么时候借的？',
-                hintText: '格式：YYYY-MM-DD，如 2025-06-08'
+                labelText: '借款日期',
+                hintText: '选择借款日期',
+                prefixIcon: Icon(Icons.calendar_today),
               ),
+              onTap: () async {
+                final date = await showDatePicker(
+                  context: context,
+                  initialDate: DateTime.now(),
+                  firstDate: DateTime(2000),
+                  lastDate: DateTime(2100),
+                );
+
+                if (date != null) {
+                  startController.text = DateFormat('yyyy-MM-dd').format(date);
+                }
+              },
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return '请选择借款日期';
+                }
+                return null;
+              },
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
-            child: TextFormField(
+            const SizedBox(height: 16),
+
+            // 还款日期
+            TextFormField(
               controller: stopController,
+              readOnly: true,
               decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: '什么时候还清？',
-                hintText: '格式：YYYY-MM-DD，如 2025-06-08'
+                labelText: '还款日期',
+                hintText: '选择还款日期 (可选)',
+                prefixIcon: Icon(Icons.calendar_month),
               ),
+              onTap: () async {
+                final initialDate = DateTime.now().add(const Duration(days: 30));
+                final date = await showDatePicker(
+                  context: context,
+                  initialDate: initialDate,
+                  firstDate: DateTime(2000),
+                  lastDate: DateTime(2100),
+                );
+
+                if (date != null) {
+                  stopController.text = DateFormat('yyyy-MM-dd').format(date);
+                }
+              },
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
-            child: TextFormField(
+            const SizedBox(height: 16),
+
+            // 借款原因
+            TextFormField(
               controller: reasonController,
+              maxLines: 3,
               decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: '为什么要借？',
-                hintText: '用途或备注'
+                labelText: '借款原因',
+                hintText: '请输入借款用途或备注',
+                prefixIcon: Icon(Icons.description),
               ),
             ),
-          ),
-        ],
+            const SizedBox(height: 24),
+
+            // 提交按钮
+            ElevatedButton(
+              onPressed: _importData,
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
+              child: const Text('添加借款记录', style: TextStyle(fontSize: 16)),
+            ),
+          ],
+        ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          importData(
-            borrowerController.text, lenderController.text,
-            Decimal.parse(amountController.text),
-            convertToTimestamp(startController.text),
-            convertToTimestampSafe(stopController.text), reasonController.text
-          );
-          Navigator.pop(context);
-        },
-        tooltip: '导入',
-        child: const Icon(Icons.import_export),
-      )
     );
   }
 }
