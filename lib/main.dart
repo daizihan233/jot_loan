@@ -8,6 +8,8 @@ import 'package:jot_loan/utils/models.dart';
 
 import 'components/transfer_card.dart';
 
+Function? transferPageState;
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initDatabase();
@@ -60,21 +62,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> _loadTransfers() async {
-    setState(() => isLoading = true);
-
-    try {
-      final transfersList = await getTransfers();
-      setState(() {
-        transfers = transfersList.reversed.toList();
-        transferData = transfersList.isEmpty ? "没有转账记录" : "";
-        isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        transferData = "加载失败: $e";
-        isLoading = false;
-      });
-    }
+    await transferPageState!();
   }
 
 
@@ -129,7 +117,7 @@ class _MyHomePageState extends State<MyHomePage> {
           ? FloatingActionButton(
         onPressed: () async {
           await Navigator.of(context).push(
-              MaterialPageRoute(builder: (context) => const MyAddPage())
+              MaterialPageRoute(builder: (context) => MyAddPage(onUpdate: _loadTransfers,))
           );
           _loadTransfers();
         },
@@ -158,6 +146,7 @@ class _TransferListPageState extends State<TransferListPage> {
   void initState() {
     super.initState();
     _loadTransfers();
+    transferPageState = _loadTransfers;
   }
 
   Future<void> _loadTransfers() async {

@@ -6,7 +6,8 @@ import 'package:jot_loan/utils/sql.dart';
 import 'package:intl/intl.dart';
 
 class MyAddPage extends StatefulWidget {
-  const MyAddPage({super.key});
+  final VoidCallback onUpdate;
+  const MyAddPage({super.key, required this.onUpdate});
 
   @override
   State<MyAddPage> createState() => _MyAddPageState();
@@ -56,6 +57,7 @@ class _MyAddPageState extends State<MyAddPage> {
       );
 
       await insertTransfer(transfer);
+      widget.onUpdate(); // 刷新上级页面
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
