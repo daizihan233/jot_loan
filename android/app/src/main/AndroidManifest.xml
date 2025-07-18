@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="jot_loan"
+        android:label="借有谱"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

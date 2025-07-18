@@ -1,16 +1,13 @@
-# jot_loan
+# jot_loan 借有谱
 
 快速记录朋友间的小额借款
 
-## Getting Started
+## 关于名称与图标
+名称是 DeepSeek R1 起的，本人实在没啥美术功底，所以是 Flutter 默认图标
 
-This project is a starting point for a Flutter application.
+## 其他
+我之前一直烦恼于我很难记得别人到底借了我多少钱，转账记录太杂太散，市面上的记账软件我也觉得太麻烦，也与我的需求不重合， 因为我并不想记录每一笔账，所以我就开发这么一个纯粹的记录借贷款的软件
 
-A few resources to get you started if this is your first Flutter project:
+这个软件还在开发初期，功能较少
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+本人平时不怎么写 Flutter，代码可能比较乱，~~重构什么的以后再说吧~~，部分代码使用 AI 辅助开发
