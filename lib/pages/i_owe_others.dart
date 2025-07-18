@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:decimal/decimal.dart';
+import 'package:jot_loan/utils/date.dart';
 import 'package:jot_loan/utils/models.dart';
 import 'package:jot_loan/utils/sql.dart';
 
@@ -276,7 +277,7 @@ class BorrowerDetailPage extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text('已还: ${transfer.money}'),
-                        Text('日期: ${transfer.start}'),
+                        Text('日期: ${convertToString(transfer.start)}'),
                         if (transfer.reason.isNotEmpty)
                           Text('事由: ${transfer.reason}'),
                       ],
