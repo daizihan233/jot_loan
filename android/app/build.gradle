@@ -13,7 +13,7 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "cn.kuohu.jotloan.jot_loan"
+    namespace = "cn.kuohu.jot_loan"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
